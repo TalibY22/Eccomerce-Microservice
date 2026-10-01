@@ -1,0 +1,106 @@
+services:
+  user-db:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: rootpass
+      MARIADB_DATABASE: user_service
+      MARIADB_USER: user_svc
+      MARIADB_PASSWORD: userpass
+    ports:
+      - "3306:3306"
+    volumes:
+      - user_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  user-service:
+    build:
+      context: .
+      dockerfile: services/user/Dockerfile
+    restart: unless-stopped
+    environment:
+      DB_DSN: "user_svc:userpass@tcp(user-db:3306)/user_service?parseTime=true"
+    ports:
+      - "50051:50051"
+    depends_on:
+      user-db:
+        condition: service_healthy
+
+  product-db:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: rootpass
+      MARIADB_DATABASE: product_service
+      MARIADB_USER: product_svc
+      MARIADB_PASSWORD: productpass
+    ports:
+      - "3307:3306"
+    volumes:
+      - product_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  product-service:
+    build:
+      context: .
+      dockerfile: services/product/Dockerfile
+    restart: unless-stopped
+    environment:
+      DB_DSN: "product_svc:productpass@tcp(product-db:3306)/product_service?parseTime=true"
+    ports:
+      - "50052:50052"
+    depends_on:
+      product-db:
+        condition: service_healthy
+
+  order-db:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: rootpass
+      MARIADB_DATABASE: order_service
+      MARIADB_USER: order_svc
+      MARIADB_PASSWORD: orderpass
+    ports:
+      - "3308:3306"
+    volumes:
+      - order_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  order-service:
+    build:
+      context: .
+      dockerfile: services/order/Dockerfile
+    restart: unless-stopped
+    environment:
+      DB_DSN: "order_svc:orderpass@tcp(order-db:3306)/order_service?parseTime=true"
+      USER_SERVICE_ADDR: "user-service:50051"
+      PRODUCT_SERVICE_ADDR: "product-service:50052"
+    ports:
+      - "50053:50053"
+    depends_on:
+      order-db:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+      product-service:
+        condition: service_started
+
+ 
+
+volumes:
+  user_db_data:
+  product_db_data:
+  order_db_data:
