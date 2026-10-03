@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"log"
 	"net"
@@ -15,6 +16,7 @@ import (
 	"user_service/internal/repository"
 	"user_service/internal/service"
 	grpctransport "user_service/internal/transport/grpc"
+	"user_service/migrations"
 )
 
 func main() {
@@ -35,6 +37,9 @@ func main() {
 
 	if err := db.Ping(); err != nil {
 		log.Fatalf("failed to connect to db: %v", err)
+	}
+	if err := migrations.Apply(context.Background(), db); err != nil {
+		log.Fatalf("failed to apply database migrations: %v", err)
 	}
 
 	repo := repository.NewUserRepository(db)

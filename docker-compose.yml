@@ -48,6 +48,18 @@ services:
       timeout: 5s
       retries: 10
 
+  product-migrations:
+    build:
+      context: .
+      dockerfile: services/product/Dockerfile
+    restart: "no"
+    environment:
+      DB_DSN: "product_svc:productpass@tcp(product-db:3306)/product_service?parseTime=true"
+      MIGRATIONS_THROUGH: "002_product_catalog.sql"
+    depends_on:
+      product-db:
+        condition: service_healthy
+
   product-service:
     build:
       context: .
@@ -59,6 +71,10 @@ services:
       - "50052:50052"
     depends_on:
       product-db:
+        condition: service_healthy
+      product-migrations:
+        condition: service_completed_successfully
+      warehouse-service:
         condition: service_healthy
 
   order-db:
@@ -88,6 +104,7 @@ services:
       DB_DSN: "order_svc:orderpass@tcp(order-db:3306)/order_service?parseTime=true"
       USER_SERVICE_ADDR: "user-service:50051"
       PRODUCT_SERVICE_ADDR: "product-service:50052"
+      KAFKA_BROKER: "kafka:9092"
     ports:
       - "50053:50053"
     depends_on:
@@ -97,6 +114,229 @@ services:
         condition: service_started
       product-service:
         condition: service_started
+  
+
+  warehouse-db:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: rootpass
+      MARIADB_DATABASE: warehouse_service
+      MARIADB_USER: warehouse_svc
+      MARIADB_PASSWORD: warehousepass
+    ports:
+      - "3309:3306"
+    volumes:
+      - warehouse_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  warehouse-service:
+    build:
+      context: .
+      dockerfile: services/warehouse/Dockerfile
+    restart: unless-stopped
+    environment:
+      DB_HOST: warehouse-db
+      DB_PORT: "3306"
+      DB_NAME: warehouse_service
+      DB_USER: warehouse_svc
+      DB_PASSWORD: warehousepass
+      PRODUCT_DB_HOST: product-db
+      PRODUCT_DB_PORT: "3306"
+      PRODUCT_DB_NAME: product_service
+      PRODUCT_DB_USER: product_svc
+      PRODUCT_DB_PASSWORD: productpass
+      KAFKA_BROKER: kafka:9092
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    depends_on:
+      warehouse-db:
+        condition: service_healthy
+      product-db:
+        condition: service_healthy
+      product-migrations:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
+
+  notification-db:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: rootpass
+      MARIADB_DATABASE: notification_service
+      MARIADB_USER: notification_svc
+      MARIADB_PASSWORD: notificationpass
+    volumes:
+      - notification_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification/Dockerfile
+    restart: unless-stopped
+    environment:
+      NOTIFICATION_HOST: notification-db
+      NOTIFICATION_PORT: "3306"
+      NOTIFICATION_NAME: notification_service
+      NOTIFICATION_USER: notification_svc
+      NOTIFICATION_PASSWORD: notificationpass
+      KAFKA_BROKER: kafka:9092
+    ports:
+      - "8001:8000"
+    depends_on:
+      notification-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  delivery-db:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: rootpass
+      MARIADB_DATABASE: delivery_service
+      MARIADB_USER: delivery_svc
+      MARIADB_PASSWORD: deliverypass
+    volumes:
+      - delivery_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  delivery-service:
+    build:
+      context: .
+      dockerfile: services/delivery/Dockerfile
+    restart: unless-stopped
+    environment:
+      DELIVERY_HOST: delivery-db
+      DELIVERY_PORT: "3306"
+      DELIVERY_NAME: delivery_service
+      DELIVERY_USER: delivery_svc
+      DELIVERY_PASSWORD: deliverypass
+      KAFKA_BROKER: kafka:9092
+      CARRIER_WEBHOOK_SECRET: change-this-secret
+    ports:
+      - "8002:8000"
+    depends_on:
+      delivery-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  billing-db:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: rootpass
+      MARIADB_DATABASE: billing_service
+      MARIADB_USER: billing_svc
+      MARIADB_PASSWORD: billingpass
+    volumes:
+      - billing_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  billing-service:
+    build:
+      context: .
+      dockerfile: services/billing/Dockerfile
+    restart: unless-stopped
+    environment:
+      BILLING_HOST: billing-db
+      BILLING_PORT: "3306"
+      BILLING_NAME: billing_service
+      BILLING_USER: billing_svc
+      BILLING_PASSWORD: billingpass
+      KAFKA_BROKER: kafka:9092
+    ports:
+      - "8003:8000"
+    depends_on:
+      billing-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  analytics-db:
+    image: clickhouse/clickhouse-server:24.12
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_DB: analytics
+      CLICKHOUSE_USER: analytics
+      CLICKHOUSE_PASSWORD: analyticspass
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    volumes:
+      - analytics_db_data:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--user", "analytics", "--password", "analyticspass", "--query", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  analytics-service:
+    build:
+      context: .
+      dockerfile: services/analytics/Dockerfile
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_URL: http://analytics-db:8123
+      CLICKHOUSE_DATABASE: analytics
+      CLICKHOUSE_USER: analytics
+      CLICKHOUSE_PASSWORD: analyticspass
+      KAFKA_BROKER: kafka:9092
+    ports:
+      - "8004:8000"
+    depends_on:
+      analytics-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  kafka:
+    image: apache/kafka:3.8.0
+    restart: unless-stopped
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    ports:
+      - "9094:9094"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 20s
+    volumes:
+      - kafka_data:/var/lib/kafka/data
 
  
 
@@ -104,3 +344,9 @@ volumes:
   user_db_data:
   product_db_data:
   order_db_data:
+  warehouse_db_data:
+  notification_db_data:
+  delivery_db_data:
+  billing_db_data:
+  analytics_db_data:
+  kafka_data:

@@ -1,5 +1,3 @@
-
-
 package grpc
 
 import (
@@ -24,8 +22,11 @@ func NewHandler(svc *service.ProductService) *Handler {
 }
 
 func (h *Handler) CreateProduct(ctx context.Context, req *productv1.CreateProductRequest) (*productv1.CreateProductResponse, error) {
-	p, err := h.svc.CreateProduct(ctx, req.GetName(), req.GetDescription(), req.GetPrice(), req.GetStock())
+	p, err := h.svc.CreateProduct(ctx, req.GetSku(), req.GetName(), req.GetDescription(), req.GetCategory(), req.GetCurrency(), req.GetPrice())
 	if err != nil {
+		if errors.Is(err, service.ErrInvalidProduct) {
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		}
 		return nil, status.Error(codes.Internal, "failed to create product")
 	}
 	return &productv1.CreateProductResponse{Id: p.ID}, nil
@@ -42,10 +43,13 @@ func (h *Handler) GetProduct(ctx context.Context, req *productv1.GetProductReque
 
 	return &productv1.GetProductResponse{
 		Id:          p.ID,
+		Sku:         p.SKU,
 		Name:        p.Name,
 		Description: p.Description,
+		Category:    p.Category,
+		Currency:    p.Currency,
+		Active:      p.Active,
 		Price:       p.Price,
-		Stock:       p.Stock,
 	}, nil
 }
 
@@ -59,10 +63,13 @@ func (h *Handler) ListProducts(ctx context.Context, req *productv1.ListProductsR
 	for i, p := range products {
 		pbProducts[i] = &productv1.Product{
 			Id:          p.ID,
+			Sku:         p.SKU,
 			Name:        p.Name,
 			Description: p.Description,
+			Category:    p.Category,
+			Currency:    p.Currency,
+			Active:      p.Active,
 			Price:       p.Price,
-			Stock:       p.Stock,
 		}
 	}
 

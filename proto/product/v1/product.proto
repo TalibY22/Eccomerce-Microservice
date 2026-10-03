@@ -10,10 +10,13 @@ service ProductService {
 }
 
 message CreateProductRequest {
+  reserved 4;
   string name = 1;
   string description = 2;
   double price = 3;
-  int32 stock = 4;
+  string sku = 5;
+  string category = 6;
+  string currency = 7;
 }
 
 message CreateProductResponse {
@@ -25,11 +28,15 @@ message GetProductRequest {
 }
 
 message GetProductResponse {
+  reserved 5;
   string id = 1;
   string name = 2;
   string description = 3;
   double price = 4;
-  int32 stock = 5;
+  string sku = 6;
+  string category = 7;
+  string currency = 8;
+  bool active = 9;
 }
 
 message ListProductsRequest {}
@@ -39,9 +46,13 @@ message ListProductsResponse {
 }
 
 message Product {
+  reserved 5;
   string id = 1;
   string name = 2;
   string description = 3;
   double price = 4;
-  int32 stock = 5;
+  string sku = 6;
+  string category = 7;
+  string currency = 8;
+  bool active = 9;
 }

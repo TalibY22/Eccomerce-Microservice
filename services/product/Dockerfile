@@ -15,12 +15,14 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /product-service ./cmd/server
 
 FROM alpine:3.20
 
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates && addgroup -S app && adduser -S -G app app
 
-WORKDIR /root/
+WORKDIR /app
 
-COPY --from=builder /product-service .
+COPY --from=builder --chown=app:app /product-service /app/product-service
+
+USER app
 
 EXPOSE 50052
 
-CMD ["./product-service"]
+CMD ["/app/product-service"]

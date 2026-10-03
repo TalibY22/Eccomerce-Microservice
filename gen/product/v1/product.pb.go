@@ -26,7 +26,9 @@ type CreateProductRequest struct {
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	Description   string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
 	Price         float64                `protobuf:"fixed64,3,opt,name=price,proto3" json:"price,omitempty"`
-	Stock         int32                  `protobuf:"varint,4,opt,name=stock,proto3" json:"stock,omitempty"`
+	Sku           string                 `protobuf:"bytes,5,opt,name=sku,proto3" json:"sku,omitempty"`
+	Category      string                 `protobuf:"bytes,6,opt,name=category,proto3" json:"category,omitempty"`
+	Currency      string                 `protobuf:"bytes,7,opt,name=currency,proto3" json:"currency,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -82,11 +84,25 @@ func (x *CreateProductRequest) GetPrice() float64 {
 	return 0
 }
 
-func (x *CreateProductRequest) GetStock() int32 {
+func (x *CreateProductRequest) GetSku() string {
 	if x != nil {
-		return x.Stock
+		return x.Sku
 	}
-	return 0
+	return ""
+}
+
+func (x *CreateProductRequest) GetCategory() string {
+	if x != nil {
+		return x.Category
+	}
+	return ""
+}
+
+func (x *CreateProductRequest) GetCurrency() string {
+	if x != nil {
+		return x.Currency
+	}
+	return ""
 }
 
 type CreateProductResponse struct {
@@ -183,7 +199,10 @@ type GetProductResponse struct {
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	Price         float64                `protobuf:"fixed64,4,opt,name=price,proto3" json:"price,omitempty"`
-	Stock         int32                  `protobuf:"varint,5,opt,name=stock,proto3" json:"stock,omitempty"`
+	Sku           string                 `protobuf:"bytes,6,opt,name=sku,proto3" json:"sku,omitempty"`
+	Category      string                 `protobuf:"bytes,7,opt,name=category,proto3" json:"category,omitempty"`
+	Currency      string                 `protobuf:"bytes,8,opt,name=currency,proto3" json:"currency,omitempty"`
+	Active        bool                   `protobuf:"varint,9,opt,name=active,proto3" json:"active,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -246,11 +265,32 @@ func (x *GetProductResponse) GetPrice() float64 {
 	return 0
 }
 
-func (x *GetProductResponse) GetStock() int32 {
+func (x *GetProductResponse) GetSku() string {
 	if x != nil {
-		return x.Stock
+		return x.Sku
 	}
-	return 0
+	return ""
+}
+
+func (x *GetProductResponse) GetCategory() string {
+	if x != nil {
+		return x.Category
+	}
+	return ""
+}
+
+func (x *GetProductResponse) GetCurrency() string {
+	if x != nil {
+		return x.Currency
+	}
+	return ""
+}
+
+func (x *GetProductResponse) GetActive() bool {
+	if x != nil {
+		return x.Active
+	}
+	return false
 }
 
 type ListProductsRequest struct {
@@ -339,7 +379,10 @@ type Product struct {
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	Price         float64                `protobuf:"fixed64,4,opt,name=price,proto3" json:"price,omitempty"`
-	Stock         int32                  `protobuf:"varint,5,opt,name=stock,proto3" json:"stock,omitempty"`
+	Sku           string                 `protobuf:"bytes,6,opt,name=sku,proto3" json:"sku,omitempty"`
+	Category      string                 `protobuf:"bytes,7,opt,name=category,proto3" json:"category,omitempty"`
+	Currency      string                 `protobuf:"bytes,8,opt,name=currency,proto3" json:"currency,omitempty"`
+	Active        bool                   `protobuf:"varint,9,opt,name=active,proto3" json:"active,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -402,11 +445,32 @@ func (x *Product) GetPrice() float64 {
 	return 0
 }
 
-func (x *Product) GetStock() int32 {
+func (x *Product) GetSku() string {
 	if x != nil {
-		return x.Stock
+		return x.Sku
 	}
-	return 0
+	return ""
+}
+
+func (x *Product) GetCategory() string {
+	if x != nil {
+		return x.Category
+	}
+	return ""
+}
+
+func (x *Product) GetCurrency() string {
+	if x != nil {
+		return x.Currency
+	}
+	return ""
+}
+
+func (x *Product) GetActive() bool {
+	if x != nil {
+		return x.Active
+	}
+	return false
 }
 
 var File_product_v1_product_proto protoreflect.FileDescriptor
@@ -414,31 +478,39 @@ var File_product_v1_product_proto protoreflect.FileDescriptor
 const file_product_v1_product_proto_rawDesc = "" +
 	"\n" +
 	"\x18product/v1/product.proto\x12\n" +
-	"product.v1\"x\n" +
+	"product.v1\"\xb2\x01\n" +
 	"\x14CreateProductRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x14\n" +
-	"\x05price\x18\x03 \x01(\x01R\x05price\x12\x14\n" +
-	"\x05stock\x18\x04 \x01(\x05R\x05stock\"'\n" +
+	"\x05price\x18\x03 \x01(\x01R\x05price\x12\x10\n" +
+	"\x03sku\x18\x05 \x01(\tR\x03sku\x12\x1a\n" +
+	"\bcategory\x18\x06 \x01(\tR\bcategory\x12\x1a\n" +
+	"\bcurrency\x18\a \x01(\tR\bcurrencyJ\x04\b\x04\x10\x05\"'\n" +
 	"\x15CreateProductResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"#\n" +
 	"\x11GetProductRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\x86\x01\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\xd8\x01\n" +
 	"\x12GetProductResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x14\n" +
-	"\x05price\x18\x04 \x01(\x01R\x05price\x12\x14\n" +
-	"\x05stock\x18\x05 \x01(\x05R\x05stock\"\x15\n" +
+	"\x05price\x18\x04 \x01(\x01R\x05price\x12\x10\n" +
+	"\x03sku\x18\x06 \x01(\tR\x03sku\x12\x1a\n" +
+	"\bcategory\x18\a \x01(\tR\bcategory\x12\x1a\n" +
+	"\bcurrency\x18\b \x01(\tR\bcurrency\x12\x16\n" +
+	"\x06active\x18\t \x01(\bR\x06activeJ\x04\b\x05\x10\x06\"\x15\n" +
 	"\x13ListProductsRequest\"G\n" +
 	"\x14ListProductsResponse\x12/\n" +
-	"\bproducts\x18\x01 \x03(\v2\x13.product.v1.ProductR\bproducts\"{\n" +
+	"\bproducts\x18\x01 \x03(\v2\x13.product.v1.ProductR\bproducts\"\xcd\x01\n" +
 	"\aProduct\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x14\n" +
-	"\x05price\x18\x04 \x01(\x01R\x05price\x12\x14\n" +
-	"\x05stock\x18\x05 \x01(\x05R\x05stock2\x86\x02\n" +
+	"\x05price\x18\x04 \x01(\x01R\x05price\x12\x10\n" +
+	"\x03sku\x18\x06 \x01(\tR\x03sku\x12\x1a\n" +
+	"\bcategory\x18\a \x01(\tR\bcategory\x12\x1a\n" +
+	"\bcurrency\x18\b \x01(\tR\bcurrency\x12\x16\n" +
+	"\x06active\x18\t \x01(\bR\x06activeJ\x04\b\x05\x10\x062\x86\x02\n" +
 	"\x0eProductService\x12T\n" +
 	"\rCreateProduct\x12 .product.v1.CreateProductRequest\x1a!.product.v1.CreateProductResponse\x12K\n" +
 	"\n" +

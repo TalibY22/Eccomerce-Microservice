@@ -1,4 +1,3 @@
-
 package grpc
 
 import (
@@ -34,12 +33,12 @@ func (h *Handler) CreateOrder(ctx context.Context, req *orderv1.CreateOrderReque
 	o, err := h.svc.CreateOrder(ctx, req.GetUserId(), items)
 	if err != nil {
 		switch {
+		case errors.Is(err, service.ErrInvalidOrder):
+			return nil, status.Error(codes.InvalidArgument, err.Error())
 		case errors.Is(err, service.ErrUserNotFound):
 			return nil, status.Error(codes.NotFound, "user not found")
 		case errors.Is(err, service.ErrProductNotFound):
 			return nil, status.Error(codes.NotFound, err.Error())
-		case errors.Is(err, service.ErrInsufficientStock):
-			return nil, status.Error(codes.FailedPrecondition, err.Error())
 		default:
 			return nil, status.Error(codes.Internal, "failed to create order")
 		}
@@ -49,6 +48,7 @@ func (h *Handler) CreateOrder(ctx context.Context, req *orderv1.CreateOrderReque
 		Id:          o.ID,
 		TotalAmount: o.TotalAmount,
 		Status:      o.Status,
+		Currency:    o.Currency,
 	}, nil
 }
 
@@ -64,8 +64,10 @@ func (h *Handler) GetOrder(ctx context.Context, req *orderv1.GetOrderRequest) (*
 	pbItems := make([]*orderv1.OrderItem, len(o.Items))
 	for i, item := range o.Items {
 		pbItems[i] = &orderv1.OrderItem{
-			ProductId: item.ProductID,
-			Quantity:  item.Quantity,
+			ProductId:   item.ProductID,
+			Quantity:    item.Quantity,
+			Sku:         item.SKU,
+			ProductName: item.ProductName,
 		}
 	}
 
@@ -75,5 +77,6 @@ func (h *Handler) GetOrder(ctx context.Context, req *orderv1.GetOrderRequest) (*
 		TotalAmount: o.TotalAmount,
 		Status:      o.Status,
 		Items:       pbItems,
+		Currency:    o.Currency,
 	}, nil
 }

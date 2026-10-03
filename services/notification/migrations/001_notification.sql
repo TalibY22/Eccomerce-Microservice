@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS notification_preferences (
+ user_id VARCHAR(128) NOT NULL, channel VARCHAR(16) NOT NULL,
+ enabled BOOLEAN NOT NULL DEFAULT TRUE, updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+ PRIMARY KEY(user_id,channel)
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS notification_contacts (
+ user_id VARCHAR(128) NOT NULL, channel VARCHAR(16) NOT NULL, destination VARCHAR(320) NOT NULL,
+ verified BOOLEAN NOT NULL DEFAULT FALSE, updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+ PRIMARY KEY(user_id,channel)
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS notification_templates (
+ event_type VARCHAR(160) NOT NULL, channel VARCHAR(16) NOT NULL, subject_template VARCHAR(320) NULL, body_template TEXT NOT NULL,
+ PRIMARY KEY(event_type,channel)
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS notification_attempts (
+ id CHAR(36) PRIMARY KEY, event_id VARCHAR(128) NOT NULL, user_id VARCHAR(128) NOT NULL,
+ event_type VARCHAR(160) NOT NULL, channel VARCHAR(16) NOT NULL, destination VARCHAR(320) NOT NULL,
+ subject VARCHAR(320) NULL, body TEXT NOT NULL, status VARCHAR(24) NOT NULL DEFAULT 'pending',
+ provider_message_id VARCHAR(255) NULL, error TEXT NULL, attempts INT UNSIGNED NOT NULL DEFAULT 0,
+ created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+ UNIQUE KEY uq_notification_delivery(event_id,user_id,channel), INDEX idx_notification_pending(status,created_at)
+) ENGINE=InnoDB;

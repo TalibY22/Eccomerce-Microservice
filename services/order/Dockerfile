@@ -11,8 +11,9 @@ RUN go mod download
 RUN CGO_ENABLED=0 GOOS=linux go build -o /order-service ./cmd/server
 
 FROM alpine:3.20
-RUN apk add --no-cache ca-certificates
-WORKDIR /root/
-COPY --from=builder /order-service .
+RUN apk add --no-cache ca-certificates && addgroup -S app && adduser -S -G app app
+WORKDIR /app
+COPY --from=builder --chown=app:app /order-service /app/order-service
+USER app
 EXPOSE 50053
-CMD ["./order-service"]
+CMD ["/app/order-service"]

@@ -1,7 +1,5 @@
 package grpc
 
-
-
 import (
 	"context"
 	"errors"
@@ -14,22 +12,21 @@ import (
 	"user_service/internal/service"
 )
 
-
 type Handler struct {
-		userv1.UnimplementedUserServiceServer
-		svc *service.UserService
-
+	userv1.UnimplementedUserServiceServer
+	svc *service.UserService
 }
 
-
-func NewHandler(svc  * service.UserService) *Handler {
-	return &Handler{svc:svc}
+func NewHandler(svc *service.UserService) *Handler {
+	return &Handler{svc: svc}
 }
-
 
 func (h *Handler) CreateUser(ctx context.Context, req *userv1.CreateUserRequest) (*userv1.CreateUserResponse, error) {
 	u, err := h.svc.CreateUser(ctx, req.GetEmail(), req.GetPassword(), req.GetFirstName(), req.GetLastName())
 	if err != nil {
+		if errors.Is(err, service.ErrInvalidUser) {
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		}
 		if errors.Is(err, repository.ErrEmailExists) {
 			return nil, status.Error(codes.AlreadyExists, "email already registered")
 		}

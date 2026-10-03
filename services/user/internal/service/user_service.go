@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"errors"
+	"net/mail"
+	"strings"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -12,6 +14,7 @@ import (
 )
 
 var ErrInvalidCredentials = errors.New("invalid email or password")
+var ErrInvalidUser = errors.New("email, password, first name and last name are required")
 
 type UserService struct {
 	repo *repository.UserRepository
@@ -22,6 +25,15 @@ func NewUserService(repo *repository.UserRepository) *UserService {
 }
 
 func (s *UserService) CreateUser(ctx context.Context, email, password, firstName, lastName string) (*domain.User, error) {
+	email = strings.ToLower(strings.TrimSpace(email))
+	firstName = strings.TrimSpace(firstName)
+	lastName = strings.TrimSpace(lastName)
+	if email == "" || password == "" || firstName == "" || lastName == "" || len(password) > 72 {
+		return nil, ErrInvalidUser
+	}
+	if parsed, err := mail.ParseAddress(email); err != nil || parsed.Address != email {
+		return nil, ErrInvalidUser
+	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, err

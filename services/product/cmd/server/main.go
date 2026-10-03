@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"log"
 	"net"
@@ -15,6 +16,7 @@ import (
 	"products/internal/repository"
 	"products/internal/service"
 	grpctransport "products/internal/transport/grpc"
+	"products/migrations"
 )
 
 func main() {
@@ -35,6 +37,15 @@ func main() {
 
 	if err := db.Ping(); err != nil {
 		log.Fatalf("failed to connect to db: %v", err)
+	}
+	if through := os.Getenv("MIGRATIONS_THROUGH"); through != "" {
+		if err := migrations.ApplyThrough(context.Background(), db, through); err != nil {
+			log.Fatalf("failed to apply database migrations through %s: %v", through, err)
+		}
+		return
+	}
+	if err := migrations.Apply(context.Background(), db); err != nil {
+		log.Fatalf("failed to apply database migrations: %v", err)
 	}
 
 	repo := repository.NewProductRepository(db)
